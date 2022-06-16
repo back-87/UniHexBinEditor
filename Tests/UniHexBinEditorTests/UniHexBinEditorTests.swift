@@ -6,6 +6,6 @@ final class UniHexBinEditorTests: XCTestCase {
         // This is an example of a functional test case.
         // Use XCTAssert and related functions to verify your tests produce the correct
         // results.
-        XCTAssertEqual(UniHexBinEditor().text, "Hello, World!")
+        //XCTAssertEqual(UniHexBinEditor().text, "Hello, World!")
     }
 }
