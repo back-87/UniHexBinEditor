@@ -12,11 +12,10 @@ import SwiftUI
 struct UniHexBinEditor: View {
     
     @ObservedObject var viewModel : UHBEViewModel
-    @State var currentEditingMode : BinaryEditMode = BinaryEditMode.hex //open to hex represenetation in case the
+    @State var currentEditingMode : BinaryEditMode = BinaryEditMode.hex //open to hex represenetation
     @State var previousEditingMode : BinaryEditMode = BinaryEditMode.hex //track last editing mode to revert the switch after being warned unicode isn't appropriate for the data
-    @State var currentseperatorPerBytePreference : String = BinaryEditseperatorPerByte.separatorBetweenBytes.rawValue
+    @State var currentSeperatorPerBytePreference : String = BinaryEditseperatorPerByte.separatorBetweenBytes.rawValue
     
-    //these two should always equate
     @State var stringValue : String = ""
     @State var expectSeparatedBytes : Bool = true //relates to both hex and binary (obviously not unicode)
     @State var hexAutoformatMode : Bool = true //hex or binary texteditor extension mode, does not apply to binary
@@ -50,7 +49,7 @@ struct UniHexBinEditor: View {
                     }).padding(.bottom)
                     
                     UniHexBinEditorseperatorPerByteRadioButtons { selected in
-                        currentseperatorPerBytePreference = selected
+                        currentSeperatorPerBytePreference = selected
                     }.opacity(currentEditingMode == BinaryEditMode.unicode ? 0 : 1)
                 }
                 Spacer()
@@ -74,14 +73,14 @@ struct UniHexBinEditor: View {
                         viewModel.workingData = Data(binaryString: stringValue, expectSeparatedBytes:expectSeparatedBytes)
                 }
             })
-            .onChange(of: currentseperatorPerBytePreference, perform: { newValue in
+            .onChange(of: currentSeperatorPerBytePreference, perform: { newValue in
                 switch (newValue) {
                     case BinaryEditseperatorPerByte.separatorBetweenBytes.rawValue:
                         expectSeparatedBytes = true
                     case BinaryEditseperatorPerByte.noseparatorBetweenBytes.rawValue:
                         expectSeparatedBytes = false
                     default:
-                        fatalError("Encountered unknown BinaryEditMode in onChange of currentseperatorPerBytePreference")
+                        fatalError("Encountered unknown BinaryEditMode in onChange of currentSeperatorPerBytePreference")
                 }
                 
                 if let strongData = viewModel.workingData {
@@ -162,6 +161,7 @@ struct UniHexBinEditor: View {
                         stringValue = strongData.hexEncodedString(options: [.upperCase])
                     }
                     previousEditingMode = currentEditingMode
+                
                 case BinaryEditMode.binary:
                     if expectSeparatedBytes {
                         stringValue = strongData.binaryOnesAndZerosDescription(options: .seperatorPerByte)
@@ -200,7 +200,8 @@ struct UniHexBinEditor: View {
         if let strongData = viewModel.workingData {
             
            var idx = 0
-            while(idx < strongData.count - 1) { //zero indexed and checking
+            
+            while(idx < strongData.count - 1) { //zero indexed
                 
                 var prevSubData : Data?
                 
@@ -212,17 +213,16 @@ struct UniHexBinEditor: View {
                         }
 
                         let subData = strongData.subdata(in: Range(idx...idx + subIdx))
-                    
-                        //if we can't turn subData into a UTF8 string, it's not valid UTF8, so bail
+
                         if String(data:subData, encoding: String.Encoding.utf8) != nil {
-                            prevSubData = subData
+                            prevSubData = subData //if we can turn subData into a UTF8 string, subdata is valid, so keep it around in case we bail on the next byte (or to use if all 4 bytes in the sub range are valid)
                         } else {
-                            //if we can turn subData into a UTF8 string, subdata is valid, so keep it around in case we bail on the next byte (or to use if all 4 bytes in the sub range are valid)
+                            //if we can't turn subData into a UTF8 string it must not be valid UTF8, so try again with more bytes until bail condition
                             continue
                         }
                 }
                 
-                //if 1, 2, 3, or 4 bytes were successfully decoded (represented by prevSubData) tack those onto our result data and increment the parent (non sub) index by how ever many bytes were successfully decoded
+                //if 1, 2, 3, or 4 bytes were successfully decoded (represented by prevSubData) tack those onto our result data and increment the parent (non sub) index by how ever many bytes were successfully decoded, if no valid bytes were decoded, jump to the next byte
                 if let strongSubData = prevSubData {
                     validCharacters.append(strongSubData)
                     idx += strongSubData.count
